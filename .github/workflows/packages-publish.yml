@@ -41,7 +41,7 @@ jobs:
       id-token: write
     # Pinned to the head of https://github.com/osdlc/osdlc/pull/785, which adds
     # `ts-checks` and `package-globs`. Repin to its merge commit once it merges.
-    uses: osdlc/osdlc/.github/workflows/ts-packages-release.yml@186438e3842908e608cfc377c6fe39e6eb3df87a # osdlc/osdlc#785 head
+    uses: osdlc/osdlc/.github/workflows/ts-packages-release.yml@109d218ca5dc46e9fa8f3142a54b8c5ed3671d42 # osdlc/osdlc#785 head
     with:
       app-client-id: Iv23liYTGAl78fzN8YWm
       ts-checks: false
