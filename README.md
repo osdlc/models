@@ -57,12 +57,14 @@ npx @osdlc/corpus-schema validate --strict docs/planning
 ```sh
 pnpm install
 pnpm test
+sh tools/tests/leak-check.sh
 sh tools/leak-check.sh
 ```
 
 `pnpm test` runs each package's tests. `tools/validate-strict.sh <folder>...` validates folders and
 fails on a warning. `tools/leak-check.sh` fails on private data in a package folder, such as a
-home path, an email address or a link into a private repo. CI runs all of these on every pull
+home path, an email address or a link into a private repo, and `tools/tests/leak-check.sh`
+checks that it catches each kind. CI runs all of these on every pull
 request, in `.github/workflows/validate.yml`.
 
 ## Releases
@@ -71,8 +73,9 @@ Releases use [Changesets](https://changesets.dev), as in osdlc/osdlc and osdlc/m
 
 - A change users can see adds a changeset: run `pnpm changeset` at the repository root. Start a
   breaking change's summary with `**Breaking:**`.
-- On a push to main, `.github/workflows/packages-publish.yml` runs `validate.yml`. With changesets
-  pending, it then opens a Version Packages pull request as the osdlc-release GitHub App, filled by
+- On a push to main, `.github/workflows/packages-publish.yml` runs `validate.yml`, then
+  osdlc/osdlc's shared `ts-packages-release.yml` with the TypeScript steps off. With changesets
+  pending, that opens a Version Packages pull request as the osdlc-release GitHub App, filled by
   `pnpm run version-packages`. When that pull request merges, the push publishes the versions
   that are not on npm yet.
 - npm auth is trusted publishing (OIDC) only, with provenance. Each package's trusted publisher on

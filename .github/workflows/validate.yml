@@ -3,7 +3,8 @@
 # profiles, the starter and the claims example must validate with no errors
 # and no warnings. Each package's tests check the package as npm ships it,
 # and that broken records fail with their one expected error. The leak check
-# fails on private data in a package folder.
+# fails on private data in a package folder, and its own test plants each kind
+# of leak to check that it is caught.
 #
 # It runs on every pull request, and packages-publish.yml calls it before a
 # release.
@@ -51,6 +52,9 @@ jobs:
       # only once the workspace is installed.
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Check that the leak check catches each leak
+        run: sh tools/tests/leak-check.sh
 
       - name: Check for private data
         run: sh tools/leak-check.sh
