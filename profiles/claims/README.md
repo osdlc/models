@@ -231,8 +231,8 @@ A contribution has `contributor` (an Agent with `name` and `agentType`), `activi
    `..`, plain or percent-encoded, and does not point at the type's schema file. The pattern has
    two gaps. A link to a `.md` file inside a record folder that is not the record itself still
    passes. A link that climbs above the corpus into some other `study-results` folder gets only a
-   warning, and `corpus-schema validate` still exits 0. Both close when corpus-schema allows
-   `x-ref` inside nested objects (osdlc/markdown task 31): the pattern then becomes
+   warning, and `corpus-schema validate` still exits 0. corpus-schema does not support `x-ref`
+   inside nested objects yet. Once it does, both gaps close: the pattern becomes
    `x-ref: study-results`.
 5. Evidence items are study results only. VA-Spec also lets an evidence line cite statements and
    other information entities. Citing another statement can come later.
@@ -247,8 +247,8 @@ A contribution has `contributor` (an Agent with `name` and `agentType`), `activi
    abstract class whose `subject` and `object` are entities. Here `subject` and `predicate` are
    text, and `object` is any JSON value except null: text, a number, true or false, an object or a
    list. The corpus decides the object's shape. `subject` may be a slug or a link to a record. The
-   validator checks that a link resolves, but not what type it points at, until `x-ref` works
-   inside nested objects (osdlc/markdown task 31). The proposition has no `type`.
+   validator checks that a link resolves, but not what type it points at, because corpus-schema
+   does not support `x-ref` inside nested objects yet. The proposition has no `type`.
 9. Some optional fields are required. `title` on a document, `contributions` on study results and
    statements, `hasEvidenceItems` on an evidence line, and all three parts of a contribution. A
    record without them does not carry enough to check.
@@ -410,7 +410,7 @@ properties:
 ```
 
 `harness` and `subject` are top-level fields here, so they can be typed links. A typed link inside
-the proposition needs `x-ref` in nested objects, which is osdlc/markdown task 31.
+the proposition needs `x-ref` in nested objects, which corpus-schema does not support yet.
 
 ### What stays in your corpus
 
