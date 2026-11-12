@@ -17,4 +17,4 @@ contributions:
 ---
 
 An evidence item that climbs above the corpus. The pattern cannot stop it, and the validator only
-warns. This case writes the gap down until nested `x-ref` (plan task 31) closes it.
+warns. This case writes the gap down until nested `x-ref` (osdlc/markdown task 31) closes it.

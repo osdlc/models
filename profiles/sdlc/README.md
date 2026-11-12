@@ -7,7 +7,7 @@ check them with these types instead of writing its own.
 The profile is a corpus that holds types and no records. It ships as the npm package
 `@osdlc/corpus-profile-sdlc`. A corpus names it under `extends` in its root file, with the prefix
 `sdlc`, and its folders take the profile's types through `uses`. The
-[corpus-schema spec](../../packages/conformance/corpus-schema/SPEC.md) defines both.
+[corpus-schema spec](https://github.com/osdlc/markdown/blob/main/packages/conformance/corpus-schema/SPEC.md) defines both.
 
 ## Where the types come from
 
@@ -27,7 +27,7 @@ lists the types and says what each schema checks.
 
 model-schema and the packs are in a private repo for now, so regenerating the profile is a manual
 step. No check here notices when the packs change. That stays so until model-schema and the packs
-move to a public repo.
+move to this repo.
 
 ## The types
 
@@ -114,11 +114,11 @@ records.
 
 ## Regenerate
 
-From a checkout of the repo that holds model-schema and the packs (sksizer/dev, private for now):
+From a checkout of the repo that holds model-schema and the packs, which is private for now:
 
 ```sh
 cd packages/ts/pack-sdlc
-bunx model-schema corpus . --inline --out <osdlc/markdown>/profiles/sdlc/corpus
+bunx model-schema corpus . --inline --out <osdlc/models>/profiles/sdlc/corpus
 ```
 
 The command owns `corpus/`: it rewrites every file and removes files it did not write. Commit the
@@ -126,9 +126,10 @@ result with a changeset.
 
 ## Test
 
+From the repository root:
+
 ```sh
-sh tools/build-corpus-schema.sh
-pnpm install --frozen-lockfile --filter @osdlc/corpus-sdlc-starter
+pnpm install --frozen-lockfile
 sh profiles/sdlc/tests/package.sh
 ```
 

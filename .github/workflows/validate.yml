@@ -1,0 +1,73 @@
+# Checks the packages under profiles/ and corpora/ with the corpus-schema
+# validator, @osdlc/corpus-schema from npm (a root devDependency). The
+# profiles, the starter and the claims example must validate with no errors
+# and no warnings. Each package's tests check the package as npm ships it,
+# and that broken records fail with their one expected error. The leak check
+# fails on private data in a package folder.
+#
+# It runs on every pull request, and packages-publish.yml calls it before a
+# release.
+#
+# The sdlc profile is generated from packs outside this repository, so nothing
+# here checks it against them. Regenerating it is a manual step (see
+# profiles/sdlc/README.md).
+#
+# Every action is pinned to a commit SHA; the comment names its release.
+name: validate
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same pull request cancels this workflow's older run.
+# Other events get a group of their own, so a call from packages-publish.yml
+# is never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reads the pnpm version from `packageManager` in the root package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      # pnpm pack resolves the starter's workspace dependency on the profile
+      # only once the workspace is installed.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for private data
+        run: sh tools/leak-check.sh
+
+      - name: Validate the profiles, the starter and the claims example
+        run: >-
+          sh tools/validate-strict.sh
+          profiles/sdlc/corpus
+          corpora/sdlc-starter/corpus
+          profiles/claims/corpus
+          profiles/claims/example
+
+      - name: Check the packed sdlc profile and starter
+        run: sh profiles/sdlc/tests/package.sh
+
+      - name: Check that the broken claims records fail
+        run: sh profiles/claims/tests/run.sh
+
+      - name: Check the packed claims profile
+        run: sh profiles/claims/tests/package.sh

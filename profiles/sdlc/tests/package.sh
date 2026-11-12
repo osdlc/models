@@ -20,7 +20,7 @@
 #   and its decision is a record folder, D-0101-<slug>/README.md;
 # - downstream/ fails when it cites a principle the starter does not hold.
 #
-# The validator is this repository's corpus-schema, built first. Set
+# The validator is the corpus-schema the repository root installs. Set
 # CORPUS_SCHEMA to run another one (see tools/validator.sh).
 set -eu
 

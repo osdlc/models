@@ -1,0 +1,196 @@
+# Releases the packages under profiles/ and corpora/ with Changesets on every
+# push to main: validate.yml first, then either the Version Packages pull
+# request or the publish of the versions not on npm yet. The root README
+# describes the release steps.
+#
+# This is osdlc/osdlc's ts-packages-release.yml written out for corpus
+# packages, which hold Markdown and JSON Schema files and no code. That
+# workflow builds each package and runs `package-checks ts` over the folder
+# `tsDir`, which needs TypeScript packages in one folder.
+#
+# npm auth is trusted publishing (OIDC) only, with provenance. npm checks the
+# calling workflow, so each package's trusted publisher on npmjs.com names
+# this file, packages-publish.yml, and the file keeps its name. Only the
+# `publish` job gets `id-token: write`.
+#
+# The Version Packages pull request is opened as the osdlc-release GitHub App,
+# so its pull_request checks start without an approval click; a pull request
+# opened with GITHUB_TOKEN would wait for one. The App's private key is the
+# secret RELEASE_PLZ_APP_PRIVATE_KEY in the release-plz environment.
+#
+# Every action is pinned to a commit SHA; the comment names its release.
+name: packages-publish
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: packages-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/validate.yml
+
+  select-mode:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.select-mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select-mode.outputs.publish-plan-artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - id: select-mode
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+
+  version:
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    environment: release-plz
+    permissions:
+      contents: read
+    steps:
+      - name: Check the App key
+        env:
+          APP_KEY: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_KEY" ]; then
+            echo "::error::RELEASE_PLZ_APP_PRIVATE_KEY is empty. The release-plz environment must hold it."
+            exit 1
+          fi
+
+      - id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: Iv23liYTGAl78fzN8YWm
+          private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # `version-packages` runs `changeset version`, then refreshes
+      # pnpm-lock.yaml, since `changeset version` rewrites the ranges the
+      # packages use for each other and CI installs with --frozen-lockfile.
+      - uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: pnpm run version-packages
+
+  pack:
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Trusted publishing cannot create a package: the owner stages each new
+      # one first with `package-checks stage`.
+      - name: Refuse a package that is not on npm yet
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for manifest in profiles/*/package.json corpora/*/package.json; do
+            name="$(node -p "const p = require('./$manifest'); p.private ? '' : p.name")"
+            [ -n "$name" ] || continue
+            if ! err="$(npm view "$name" name 2>&1 >/dev/null)"; then
+              if grep -q E404 <<<"$err"; then
+                echo "::error::$name is not on npm yet. The owner stages it once with \`pnpm exec package-checks stage\`, which publishes a placeholder and adds its trusted publisher."
+              else
+                echo "::error::npm view $name failed: $err"
+              fi
+              exit 1
+            fi
+          done
+
+      - id: pack
+        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      # Tags and GitHub releases.
+      contents: write
+      # OIDC token for npm trusted publishing; provenance is attested with it.
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      # pnpm 10 hands a tarball to `npm publish`, and trusted publishing needs
+      # npm 11.5.1 or later.
+      - name: Install npm
+        run: |
+          set -euo pipefail
+          npm install -g npm@11.19.1
+          echo "npm $(npm --version)"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}

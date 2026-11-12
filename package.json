@@ -1,0 +1,20 @@
+{
+  "name": "osdlc-models",
+  "private": true,
+  "type": "module",
+  "description": "Workspace root for the corpus packages published to npm from this repository's profiles/ and corpora/ directories.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "pnpm -r --if-present run test",
+    "leak-check": "sh tools/leak-check.sh",
+    "version-packages": "changeset version && pnpm install --lockfile-only"
+  },
+  "devDependencies": {
+    "@changesets/cli": "3.0.3",
+    "@osdlc/corpus-schema": "^0.3.0",
+    "@osdlc/package-checks": "^0.2.0"
+  }
+}
