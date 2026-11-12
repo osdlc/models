@@ -11,7 +11,7 @@ The profile is a corpus that holds types and no records. It ships as the npm pac
 A few words used below:
 
 - A corpus is a folder of Markdown notes. A corpus-schema corpus has a root file,
-  `corpus-schema.md`, and one folder per type of record.
+  `<name>.corpus-schema.md`, and one folder per type of record.
 - A record is one note in a type folder. Its YAML frontmatter is its data, and the type's JSON
   Schema checks it.
 - A record folder is a record that keeps its own files beside it, such as a script and a CSV:

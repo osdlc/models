@@ -30,6 +30,14 @@ for case_dir in "$here"/cases/*/; do
   name=$(basename "$case_dir")
   corpus="$work/$name"
   cp -R "$here/../example" "$corpus"
+  # A case with its own root file replaces the example's: a folder holds one.
+  corpus_name=example
+  for root in "$case_dir"*.corpus-schema.*; do
+    [ -e "$root" ] || continue
+    rm -f "$corpus"/*.corpus-schema.*
+    corpus_name=$(basename "$root")
+    corpus_name=${corpus_name%%.corpus-schema.*}
+  done
   cp -R "$case_dir." "$corpus/"
   rm -f "$corpus/expected-error.txt" "$corpus/expected-warning.txt"
 
@@ -39,11 +47,11 @@ for case_dir in "$here"/cases/*/; do
   if [ -f "$case_dir/expected-error.txt" ]; then
     expected=$(cat "$case_dir/expected-error.txt")
     want_status=1
-    summary="$name: 1 error(s)"
+    summary="$corpus_name: 1 error(s)"
   else
     expected=$(cat "$case_dir/expected-warning.txt")
     want_status=0
-    summary="ok: $name:"
+    summary="ok: $corpus_name:"
   fi
 
   if [ "$status" -eq "$want_status" ] &&

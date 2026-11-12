@@ -49,7 +49,7 @@ profile="$work/node_modules/@osdlc/corpus-profile-sdlc"
 starter="$work/node_modules/@osdlc/corpus-sdlc-starter"
 
 for p in "$profile" "$starter"; do
-  if [ -f "$p/corpus/corpus-schema.md" ] && [ ! -e "$p/tests" ]; then
+  if [ -f "$p/corpus/$(basename "$p" | sed 's/^corpus-profile-//; s/^corpus-//').corpus-schema.md" ] && [ ! -e "$p/tests" ]; then
     pass "the $(basename "$p") tarball holds corpus/ and no tests"
   else
     fail "the $(basename "$p") tarball's files:"
